@@ -48,7 +48,7 @@ jobs:
           OPENAI_BASE_URL: http://127.0.0.1:8788/v1
           HERMES_MODEL: ${{ vars.HERMES_MODEL || '@cf/zai-org/glm-4.7-flash' }}
           HERMES_COMMAND: hermes -m "${{ vars.HERMES_MODEL || '@cf/zai-org/glm-4.7-flash' }}"
-          HERMES_PROMPT_FLAG: -z
+          HERMES_PROMPT_FLAG: --oneshot
         run: |
           export PATH="$HOME/.hermes/bin:$PATH"
           scripts/change-model
