@@ -29,12 +29,12 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-          submodules: recursive
 
       - name: Link Hermes home into repository
         run: |
           rm -rf "$HOME/.hermes"
           ln -s "${{ github.workspace }}/.hermes" "$HOME/.hermes"
+          rm -rf "${{ github.workspace }}/.hermes/hermes-agent"
 
       - name: Install Hermes Agent
         run: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-browser --skip-setup --non-interactive --skip-computer-use
@@ -63,6 +63,7 @@ jobs:
 
       - name: Commit Hermes home and agent changes
         run: |
+          rm -rf "${{ github.workspace }}/.hermes/hermes-agent"
           git config user.name "hermes-agent[bot]"
           git config user.email "hermes-agent[bot]@users.noreply.github.com"
           git add -A
