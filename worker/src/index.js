@@ -30,7 +30,13 @@ async function webuiIsReachable(url) {
 
 async function currentWebuiUrl(env) {
   const result = await fetch(`${env.WEBUI_URL_FILE}?t=${Date.now()}`, {
-    headers: { "Cache-Control": "no-cache" },
+    headers: {
+      Accept: "application/vnd.github.raw+json",
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      "Cache-Control": "no-cache",
+      "User-Agent": "hermes-webui-worker",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
   });
   if (!result.ok) {
     return null;
