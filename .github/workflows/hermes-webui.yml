@@ -71,6 +71,19 @@ jobs:
           git add webui-url.txt
           git diff --cached --quiet || git commit -m "chore: publish Hermes WebUI URL"
           git push
+          (
+            while true; do
+              sleep 60
+              rm -rf "${{ github.workspace }}/.hermes/hermes-agent"
+              git add -A -- . ':(exclude).github/workflows/**' ':(exclude).hermes/hermes-agent/**'
+              if git diff --cached --quiet; then
+                continue
+              fi
+              git commit -m "chore: update Hermes WebUI state"
+              git push
+            done
+          ) >/tmp/hermes-git-sync.log 2>&1 &
+          echo "$!" > /tmp/hermes-git-sync.pid
           echo "Hermes WebUI: $url"
           while true; do
             echo "Hermes WebUI: $url"
