@@ -79,5 +79,5 @@ jobs:
               cat /tmp/cloudflared.log >&2 || true
               exit 1
             fi
-            sleep 60
+            sleep 20
           done
