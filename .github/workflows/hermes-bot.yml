@@ -30,6 +30,11 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ensure workspace is writable
+        run: |
+          chmod -R u+rwX "${{ github.workspace }}"
+          git config --global --add safe.directory "${{ github.workspace }}"
+
       - name: Link Hermes home into repository
         run: |
           rm -rf "$HOME/.hermes"
