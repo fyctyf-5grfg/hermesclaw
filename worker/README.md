@@ -9,14 +9,13 @@ Deploy from this directory:
 
 ```bash
 npx wrangler secret put GITHUB_TOKEN
-npx wrangler secret put STOP_TOKEN
 npx wrangler deploy
 ```
 
 `GITHUB_TOKEN` must be a fine-grained token with Actions `Read and write` access for this repository. The workflow writes each new quick-tunnel URL to `webui-url.txt`, so no URL secret needs manual updating.
 
-Stop all active WebUI runs with the `STOP_TOKEN` secret:
+Stop all active WebUI runs with the same GitHub token:
 
 ```bash
-curl -X POST -H "Authorization: Bearer YOUR_STOP_TOKEN" https://your-worker.workers.dev/stop
+curl -X POST -H "Authorization: Bearer YOUR_GITHUB_TOKEN" https://hermes-webui-redirect.kahibexi.workers.dev/stop
 ```

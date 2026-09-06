@@ -103,7 +103,7 @@ export default {
         return response("Method not allowed", 405, { Allow: "POST" });
       }
       const authorization = request.headers.get("Authorization");
-      if (!env.STOP_TOKEN || authorization !== `Bearer ${env.STOP_TOKEN}`) {
+      if (!env.GITHUB_TOKEN || authorization !== `Bearer ${env.GITHUB_TOKEN}`) {
         return response("Unauthorized", 401, { "WWW-Authenticate": "Bearer" });
       }
       if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) {
