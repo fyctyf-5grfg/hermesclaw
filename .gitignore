@@ -8,3 +8,8 @@ __pycache__/
 event.json
 
 credentials/cloudflare.txt
+
+.hermes/cache/
+.hermes/logs/
+.hermes/auth.json
+.hermes/bin/
