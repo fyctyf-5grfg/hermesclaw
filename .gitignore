@@ -13,3 +13,4 @@ credentials/cloudflare.txt
 .hermes/logs/
 .hermes/auth.json
 .hermes/bin/
+.hermes/hermes-agent/
