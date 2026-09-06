@@ -33,23 +33,6 @@ jobs:
       - name: Install Hermes Agent
         run: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-browser --skip-setup --non-interactive --skip-computer-use
 
-      - name: Start Cloudflare proxy
-        run: |
-          nohup python3 scripts/cf-proxy.py >/tmp/cf-proxy.py.log 2>&1 &
-          PROXY_PID=$!
-          for _ in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:8788/health >/dev/null; then
-              exit 0
-            fi
-            if ! kill -0 "$PROXY_PID" 2>/dev/null; then
-              cat /tmp/cf-proxy.py.log >&2 || true
-              exit 1
-            fi
-            sleep 1
-          done
-          cat /tmp/cf-proxy.py.log >&2 || true
-          exit 1
-
       - name: Run Hermes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,6 +46,12 @@ jobs:
           HERMES_PROMPT_FLAG: -z
         run: |
           export PATH="$HOME/.hermes/bin:$PATH"
+          scripts/change-model
+          curl -fsS http://127.0.0.1:8788/health >/dev/null || {
+            cat /tmp/cf-proxy.py.log >&2 || true
+            exit 1
+          }
+          trap 'pkill -f "cf-proxy.py" 2>/dev/null || true' EXIT
           python3 hermes_github_bot.py
 
       - name: Commit Hermes home and agent changes
