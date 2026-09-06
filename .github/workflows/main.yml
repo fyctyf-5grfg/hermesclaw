@@ -1,0 +1,107 @@
+name: Build and run in parallel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate image name
+        id: meta
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository }}/hermes:latest"
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          echo "image=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch Dockerfile
+        run: |
+          curl -fSL https://bitbucket.org/hermes-new/hermes/raw/main/Dockerfile -o Dockerfile
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.image }}
+
+      - name: Make GHCR package public
+        env:
+          OWNER_TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          if [ -z "$OWNER_TOKEN" ]; then
+            echo "token secret not set; skipping visibility change."
+            exit 0
+          fi
+          OWNER="${{ github.repository_owner }}"
+          PACKAGE_NAME="${{ github.event.repository.name }}/hermes"
+          ENCODED_PACKAGE=$(echo "$PACKAGE_NAME" | sed 's/\//%2F/g')
+          curl -s -o /dev/null -w "%{http_code}\n" -L -X PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $OWNER_TOKEN" \
+            "https://api.github.com/users/$OWNER/packages/container/$ENCODED_PACKAGE/visibility" \
+            -d '{"visibility":"public"}'
+
+  run-log:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image and run container
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository }}/hermes:latest"
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+
+          until docker pull "$IMAGE_NAME" 2>/dev/null; do
+            echo "Image not ready yet, retrying in 10s..."
+            sleep 10
+          done
+
+          docker run -d --name hermes -p 5000:5000 "$IMAGE_NAME"
+
+      - name: Stream logs and push on new lines
+        run: |
+          mkdir -p logs
+          > logs/container.log
+          docker logs -f hermes > logs/container.log 2>&1 &
+
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          last_lines=0
+          while true; do
+            current_lines=$(wc -l < logs/container.log)
+            if [ "$current_lines" -gt "$last_lines" ]; then
+              git pull --ff-only origin main || git pull --rebase origin main || true
+              git add logs/container.log
+              if ! git diff --cached --quiet; then
+                git commit -m "Update logs - $(date -u +%Y-%m-%d_%H:%M:%S)"
+                git push || true
+              fi
+              last_lines=$current_lines
+            fi
+            sleep 5
+          done
