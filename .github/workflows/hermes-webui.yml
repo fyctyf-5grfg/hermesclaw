@@ -1,0 +1,77 @@
+name: Hermes WebUI Tunnel
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare repository-backed Hermes home
+        run: |
+          chmod -R u+rwX "${{ github.workspace }}"
+          git config --global --add safe.directory "${{ github.workspace }}"
+          rm -rf "$HOME/.hermes"
+          ln -s "${{ github.workspace }}/.hermes" "$HOME/.hermes"
+          rm -rf "${{ github.workspace }}/.hermes/hermes-agent"
+
+      - name: Install Hermes Agent
+        run: |
+          curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- \
+            --skip-browser --skip-setup --non-interactive --skip-computer-use
+
+      - name: Configure Cloudflare model proxy
+        run: |
+          export PATH="$HOME/.local/bin:$HOME/.hermes/bin:$PATH"
+          scripts/change-model
+
+      - name: Install Hermes WebUI in background
+        run: |
+          nohup bash -c 'curl -fsSL https://get-hermes.ai/install.sh | bash' \
+            > /tmp/hermes-webui-install.log 2>&1 &
+          echo "$!" > /tmp/hermes-webui-install.pid
+
+      - name: Start Cloudflare tunnel
+        run: |
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o "$RUNNER_TEMP/cloudflared"
+          chmod +x "$RUNNER_TEMP/cloudflared"
+          nohup "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate \
+            --url http://127.0.0.1:8787 > /tmp/cloudflared.log 2>&1 &
+          echo "$!" > /tmp/cloudflared.pid
+
+      - name: Publish WebUI URL indefinitely
+        run: |
+          url=""
+          for attempt in {1..120}; do
+            url=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
+            if [[ -n "$url" ]]; then
+              echo "Hermes WebUI: $url"
+              break
+            fi
+            sleep 1
+          done
+          if [[ -z "$url" ]]; then
+            cat /tmp/cloudflared.log >&2 || true
+            cat /tmp/hermes-webui-install.log >&2 || true
+            exit 1
+          fi
+          echo "Hermes WebUI: $url"
+          while true; do
+            echo "Hermes WebUI: $url"
+            if ! kill -0 "$(cat /tmp/cloudflared.pid)" 2>/dev/null; then
+              echo "cloudflared exited" >&2
+              cat /tmp/cloudflared.log >&2 || true
+              exit 1
+            fi
+            sleep 60
+          done
