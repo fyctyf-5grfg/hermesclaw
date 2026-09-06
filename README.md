@@ -22,6 +22,18 @@ The bot uses `hermes -p <prompt>` by default. If the installed Hermes release us
 a different one-shot flag, set `HERMES_PROMPT_FLAG` in the workflow environment.
 You can also override the executable with `HERMES_COMMAND`.
 
+## Local Cloudflare model endpoint
+
+The local proxy scripts use the ignored `credentials/cloudflare.txt` file and
+configure Hermes to use `http://127.0.0.1:8788/v1`:
+
+```bash
+scripts/change-model
+```
+
+Set `CF_CREDENTIALS_URL` to use a different credential source, or
+`CF_PROXY_PORT` to use a different local port.
+
 ## Local dry run
 
 Create an event fixture and run:

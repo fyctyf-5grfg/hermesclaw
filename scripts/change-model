@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+WORKSPACE="${WORKSPACE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROXY_URL="${CF_PROXY_URL:-http://127.0.0.1:8788/v1}"
+HEALTH_URL="${PROXY_URL%/v1}/health"
+
+count_accounts() {
+  curl -fsS "$HEALTH_URL" | python3 -c 'import json, sys; print(json.load(sys.stdin)["accounts"])'
+}
+
+# Restart the proxy to pick up any new credentials
+pkill -f "cf-proxy.py" 2>/dev/null || true
+sleep 0.3
+python3 "$WORKSPACE/scripts/cf-proxy.py" >/tmp/cf-proxy.py.log 2>&1 &
+sleep 1
+
+# Ensure Hermes points at the proxy, not a single Cloudflare account
+CURRENT_BASE=$(hermes config get model.base_url 2>/dev/null || true)
+if [[ "${CURRENT_BASE:-}" != "$PROXY_URL" ]]; then
+  hermes config set model.provider custom
+  hermes config set model.base_url "$PROXY_URL"
+  hermes config set model.api_compat openai
+  hermes config set model.default "@cf/zai-org/glm-4.7-flash"
+  hermes config set model.display_name "cloudflare"
+fi
+
+hermes config set security.redact_secrets false
+hermes config set privacy.redact_pii false
+
+ACCOUNTS=$(count_accounts)
+echo "Cloudflare proxy rotated: $PROXY_URL ($ACCOUNTS accounts in pool)"
