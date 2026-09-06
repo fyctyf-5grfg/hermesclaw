@@ -70,8 +70,13 @@ export default {
       return response("Method not allowed", 405, { Allow: "GET, HEAD" });
     }
 
-    if (!env.WEBUI_URL_FILE || !env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) {
-      return response("Worker is not configured", 503);
+    const missing = [
+      !env.WEBUI_URL_FILE && "WEBUI_URL_FILE",
+      !env.GITHUB_TOKEN && "GITHUB_TOKEN",
+      !env.GITHUB_REPOSITORY && "GITHUB_REPOSITORY",
+    ].filter(Boolean);
+    if (missing.length) {
+      return response(`Worker is not configured: missing ${missing.join(", ")}`, 503);
     }
 
     const webuiUrl = await currentWebuiUrl(env);
