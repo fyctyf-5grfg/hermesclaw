@@ -1,0 +1,4 @@
+2026-09-06 19:50:38,837 INFO hermes_cli.main: Checkout changed since last launch (unknown -> git:refs/heads/main:6b2d4faf36f107c364048e2fe17eaa02154e9ea9): cleared 46 stale __pycache__ directories
+2026-09-06 19:50:39,070 INFO hermes_cli.plugins: Plugin 'browser-browser-use' registered browser provider: browser-use
+2026-09-06 19:50:39,075 INFO hermes_cli.plugins: Plugin 'browser-browserbase' registered browser provider: browserbase
+2026-09-06 19:50:39,083 INFO hermes_cli.plugins: Plugin 'browser-firecrawl' registered browser provider: firecrawl
