@@ -14,21 +14,13 @@ memory, skills, and configuration survive between workflow runs through git.
 2. Add `OPENAI_API_KEY` under **Settings -> Secrets and variables -> Actions**.
 3. Add the repository variable `HERMES_MODEL` if you do not want `gpt-4o-mini`.
 4. Add `OPENAI_BASE_URL` as a repository variable or secret when using a custom
-   OpenAI-compatible service. For a local `g4f` service, use a self-hosted runner
-   with `http://127.0.0.1:8080/v1`; GitHub-hosted runners cannot reach your
-   development machine.
+   OpenAI-compatible service.
 5. Open an issue or comment on an existing issue as an owner, member, or
    collaborator.
 
 The bot uses `hermes -p <prompt>` by default. If the installed Hermes release uses
 a different one-shot flag, set `HERMES_PROMPT_FLAG` in the workflow environment.
 You can also override the executable with `HERMES_COMMAND`.
-
-## Local Hermes with g4f
-
-For a local run, `run_hermes_g4f.sh` starts the g4f OpenAI-compatible API,
-waits for it to become ready, sets `OPENAI_BASE_URL` to its `/v1` endpoint, and
-launches the bot. Set `G4F_BASE_URL` to use a different endpoint.
 
 ## Local dry run
 
