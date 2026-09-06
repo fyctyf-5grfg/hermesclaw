@@ -19,10 +19,11 @@ Hermes' home is deliberately kept at `.hermes/` in this repository, so sessions,
 
 1. Enable GitHub Actions in this repository
 2. Add `OPENAI_API_KEY` under **Settings → Secrets and variables → Actions** (`cloudflare-local`)
-3. (Optional) Add `HERMES_MODEL` as a repo variable; defaults to `@cf/zai-org/glm-4.7-flash`
-4. (Optional) Add `HERMES_PROMPT_FLAG` if your Hermes version uses a different one-shot flag (default is `--oneshot`)
-5. (Optional) Add `HERMES_COMMAND` if you want to override the `hermes` executable (default: `hermes`)
-6. (Optional) Add `HERMES_TIMEOUT_SECONDS` if you need longer execution time (default: 1800s = 30m)
+3. Add `HERMES_PAT` as a repository secret using a fine-grained token with `Contents: Read and write` and `Workflows: Read and write`
+4. (Optional) Add `HERMES_MODEL` as a repo variable; defaults to `@cf/zai-org/glm-4.7-flash`
+5. (Optional) Add `HERMES_PROMPT_FLAG` if your Hermes version uses a different one-shot flag (default is `--oneshot`)
+6. (Optional) Add `HERMES_COMMAND` if you want to override the `hermes` executable (default: `hermes`)
+7. (Optional) Add `HERMES_TIMEOUT_SECONDS` if you need longer execution time (default: 1800s = 30m)
 
 ### Configuration
 
@@ -30,6 +31,7 @@ Hermes' home is deliberately kept at `.hermes/` in this repository, so sessions,
 |-----------------|-----------|---------|-------------|
 | `OPENAI_API_KEY` | ✅ | — | API key for the model provider |
 | `GITHUB_TOKEN` | ✅ | Auto | GitHub token (provided automatically) |
+| `HERMES_PAT` | ✅ | — | Fine-grained token with Contents and Workflows write access, used to push workflow changes |
 | `HERMES_MODEL` | ❌ | `@cf/zai-org/glm-4.7-flash` | Model to use for Hermes |
 | `OPENAI_BASE_URL` | ❌ | `${{ github.repository }}/actions/runner/current/externals/node20/externals/threading/` | OpenAI-compatible base URL (typically `http://127.0.0.1:8788/v1`) |
 | `HERMES_COMMAND` | ❌ | `hermes` | Command to run Hermes |
