@@ -33,18 +33,36 @@ jobs:
       - name: Install Hermes Agent
         run: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-browser --skip-setup --non-interactive --skip-computer-use
 
+      - name: Start Cloudflare proxy
+        run: |
+          nohup python3 scripts/cf-proxy.py >/tmp/cf-proxy.py.log 2>&1 &
+          PROXY_PID=$!
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8788/health >/dev/null; then
+              exit 0
+            fi
+            if ! kill -0 "$PROXY_PID" 2>/dev/null; then
+              cat /tmp/cf-proxy.py.log >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+          cat /tmp/cf-proxy.py.log >&2 || true
+          exit 1
+
       - name: Run Hermes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           HERMES_HOME: ${{ github.workspace }}/.hermes
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || secrets.OPENAI_BASE_URL }}
-          HERMES_MODEL: ${{ vars.HERMES_MODEL || 'gpt-4o-mini' }}
+          OPENAI_API_KEY: cloudflare-local
+          OPENAI_BASE_URL: http://127.0.0.1:8788/v1
+          HERMES_MODEL: ${{ vars.HERMES_MODEL || '@cf/zai-org/glm-4.7-flash' }}
+          HERMES_COMMAND: hermes -m "${{ vars.HERMES_MODEL || '@cf/zai-org/glm-4.7-flash' }}"
+          HERMES_PROMPT_FLAG: -z
         run: |
           export PATH="$HOME/.hermes/bin:$PATH"
-          hermes model set "$HERMES_MODEL" || true
           python3 hermes_github_bot.py
 
       - name: Commit Hermes home and agent changes
