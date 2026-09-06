@@ -47,9 +47,10 @@ jobs:
           OPENAI_API_KEY: cloudflare-local
           OPENAI_BASE_URL: http://127.0.0.1:8788/v1
           HERMES_MODEL: ${{ vars.HERMES_MODEL || '@cf/zai-org/glm-4.7-flash' }}
-          HERMES_COMMAND: hermes -m "${{ vars.HERMES_MODEL || '@cf/zai-org/glm-4.7-flash' }}"
+          HERMES_COMMAND: hermes -m "${{ vars.HERMES_MODEL || '@cf/zai-org/glm-4.7-flash' }}" --no-restore-cwd --in "${{ github.workspace }}"
           HERMES_PROMPT_FLAG: --oneshot
         run: |
+          cd "${{ github.workspace }}"
           export PATH="$HOME/.hermes/bin:$PATH"
           scripts/change-model
           curl -fsS http://127.0.0.1:8788/health >/dev/null || {
