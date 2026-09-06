@@ -30,6 +30,11 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Link Hermes home into repository
+        run: |
+          rm -rf "$HOME/.hermes"
+          ln -s "${{ github.workspace }}/.hermes" "$HOME/.hermes"
+
       - name: Install Hermes Agent
         run: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-browser --skip-setup --non-interactive --skip-computer-use
 
