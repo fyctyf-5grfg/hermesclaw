@@ -28,6 +28,22 @@ async function webuiIsReachable(url) {
   }
 }
 
+async function currentWebuiUrl(env) {
+  const result = await fetch(`${env.WEBUI_URL_FILE}?t=${Date.now()}`, {
+    headers: { "Cache-Control": "no-cache" },
+  });
+  if (!result.ok) {
+    return null;
+  }
+  const value = (await result.text()).trim();
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 async function dispatchWebui(env) {
   const endpoint = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/dispatches`;
   const result = await fetch(endpoint, {
@@ -54,12 +70,13 @@ export default {
       return response("Method not allowed", 405, { Allow: "GET, HEAD" });
     }
 
-    if (!env.HERMES_WEBUI_URL || !env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) {
+    if (!env.WEBUI_URL_FILE || !env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) {
       return response("Worker is not configured", 503);
     }
 
-    if (await webuiIsReachable(env.HERMES_WEBUI_URL)) {
-      return Response.redirect(env.HERMES_WEBUI_URL, 302);
+    const webuiUrl = await currentWebuiUrl(env);
+    if (webuiUrl && await webuiIsReachable(webuiUrl)) {
+      return Response.redirect(webuiUrl, 302);
     }
 
     try {

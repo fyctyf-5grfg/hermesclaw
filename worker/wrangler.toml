@@ -5,7 +5,7 @@ compatibility_date = "2026-09-06"
 [vars]
 GITHUB_REPOSITORY = "fyctyf-5grfg/hermesclaw"
 GITHUB_REF = "main"
+WEBUI_URL_FILE = "https://raw.githubusercontent.com/fyctyf-5grfg/hermesclaw/main/webui-url.txt"
 
 # Set these with Wrangler secrets:
 # wrangler secret put GITHUB_TOKEN
-# wrangler secret put HERMES_WEBUI_URL

@@ -65,6 +65,12 @@ jobs:
             cat /tmp/hermes-webui-install.log >&2 || true
             exit 1
           fi
+          printf '%s\n' "$url" > webui-url.txt
+          git config user.name "hermes-agent[bot]"
+          git config user.email "hermes-agent[bot]@users.noreply.github.com"
+          git add webui-url.txt
+          git diff --cached --quiet || git commit -m "chore: publish Hermes WebUI URL"
+          git push
           echo "Hermes WebUI: $url"
           while true; do
             echo "Hermes WebUI: $url"
