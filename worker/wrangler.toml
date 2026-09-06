@@ -9,3 +9,4 @@ WEBUI_URL_FILE = "https://raw.githubusercontent.com/fyctyf-5grfg/hermesclaw/main
 
 # Set these with Wrangler secrets:
 # wrangler secret put GITHUB_TOKEN
+# wrangler secret put STOP_TOKEN

@@ -70,8 +70,55 @@ async function dispatchWebui(env) {
   }
 }
 
+async function stopWebuiRuns(env) {
+  const api = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=100`;
+  const headers = {
+    Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    "User-Agent": "hermes-webui-worker",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  const listing = await fetch(api, { headers });
+  if (!listing.ok) {
+    throw new Error(`GitHub run listing failed (${listing.status})`);
+  }
+  const data = await listing.json();
+  const activeRuns = (data.workflow_runs || []).filter((run) =>
+    run.status === "queued" || run.status === "in_progress",
+  );
+  const results = await Promise.all(activeRuns.map(async (run) => {
+    const cancel = await fetch(
+      `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/actions/runs/${run.id}/cancel`,
+      { method: "POST", headers },
+    );
+    return { id: run.id, cancelled: cancel.ok };
+  }));
+  return results;
+}
+
 export default {
   async fetch(request, env) {
+    if (new URL(request.url).pathname === "/stop") {
+      if (request.method !== "POST") {
+        return response("Method not allowed", 405, { Allow: "POST" });
+      }
+      const authorization = request.headers.get("Authorization");
+      if (!env.STOP_TOKEN || authorization !== `Bearer ${env.STOP_TOKEN}`) {
+        return response("Unauthorized", 401, { "WWW-Authenticate": "Bearer" });
+      }
+      if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) {
+        return response("Worker is not configured", 503);
+      }
+      try {
+        const runs = await stopWebuiRuns(env);
+        return response(JSON.stringify({ stopped: runs }), 200, {
+          "Content-Type": "application/json",
+        });
+      } catch (error) {
+        return response(error.message, 502, { "Content-Type": "text/plain; charset=utf-8" });
+      }
+    }
+
     if (request.method !== "GET" && request.method !== "HEAD") {
       return response("Method not allowed", 405, { Allow: "GET, HEAD" });
     }
