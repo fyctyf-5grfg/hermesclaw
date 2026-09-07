@@ -3,7 +3,7 @@
 This Worker is the public entrypoint for the temporary Hermes WebUI tunnel.
 
 - If the URL in `webui-url.txt` responds successfully, the Worker redirects to it.
-- If it is unreachable, the Worker dispatches `hermes-webui.yml` on `main` and returns `202`.
+- If it is unreachable, the Worker checks for an active workflow first. It dispatches `hermes-webui.yml` only when no run is queued or in progress.
 
 Deploy from this directory:
 

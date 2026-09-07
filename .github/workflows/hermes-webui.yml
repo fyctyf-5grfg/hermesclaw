@@ -6,6 +6,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: hermes-webui
+  cancel-in-progress: false
+
 jobs:
   webui:
     runs-on: ubuntu-latest

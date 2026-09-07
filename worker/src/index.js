@@ -70,6 +70,25 @@ async function dispatchWebui(env) {
   }
 }
 
+async function activeWebuiRuns(env) {
+  const endpoint = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=100`;
+  const result = await fetch(endpoint, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      "User-Agent": "hermes-webui-worker",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+  if (!result.ok) {
+    throw new Error(`GitHub run listing failed (${result.status})`);
+  }
+  const data = await result.json();
+  return (data.workflow_runs || []).filter((run) =>
+    run.status === "queued" || run.status === "in_progress",
+  );
+}
+
 async function stopWebuiRuns(env) {
   const api = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=100`;
   const headers = {
@@ -134,6 +153,14 @@ export default {
     }
 
     try {
+      const activeRuns = await activeWebuiRuns(env);
+      if (activeRuns.length) {
+        return response(
+          `Hermes WebUI workflow is already running (${activeRuns[0].id}).`,
+          202,
+          { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "30" },
+        );
+      }
       await dispatchWebui(env);
     } catch (error) {
       return response(error.message, 502, { "Content-Type": "text/plain; charset=utf-8" });
