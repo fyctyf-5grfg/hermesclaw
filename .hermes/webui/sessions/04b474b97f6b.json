@@ -61,7 +61,7 @@
   "read_only": false,
   "enabled_toolsets": null,
   "composer_draft": {
-    "text": "",
+    "text": "Read worker",
     "files": []
   },
   "process_wakeup_pause": {},
