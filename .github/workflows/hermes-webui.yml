@@ -39,7 +39,7 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$HOME/.hermes/bin:$PATH"
           scripts/change-model
-          scripts/ttyd
+          bash scripts/ttyd
 
       - name: Install Hermes WebUI in background
         run: |
