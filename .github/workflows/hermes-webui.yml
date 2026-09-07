@@ -60,9 +60,6 @@ jobs:
 
       - name: Publish WebUI URL indefinitely
         run: |
-          url=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)         
-          url1=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/ttyd.log | tail -1 || true)         
-          printf "${url}" > webui-url.txt
           git config user.name "hermes-agent[bot]"
           git config user.email "hermes-agent[bot]@users.noreply.github.com"
           (
@@ -78,7 +75,10 @@ jobs:
               sleep 60
             done
           ) >/tmp/hermes-git-sync.log 2>&1 &
-          while true; do
+          while true; do          
+          url=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)         
+          url1=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/ttyd.log | tail -1 || true)      
+          printf "${url}" > webui-url.txt    
           echo "Hermes WebUI: $url" 
           echo "Shell: $url1"
           sleep 20
