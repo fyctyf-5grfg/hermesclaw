@@ -7,8 +7,8 @@
     "model_provider": "custom",
     "message_count": 10,
     "created_at": 1788768945.4243906,
-    "updated_at": 1788768983.0433383,
-    "last_message_at": 1788768983.025168,
+    "updated_at": 1788769707.1690907,
+    "last_message_at": 1788769705.373668,
     "pinned": false,
     "archived": false,
     "project_id": null,
@@ -40,9 +40,9 @@
     "manual_title": false,
     "created_workspace": "/home/runner/work/hermesclaw/hermesclaw",
     "user_message_count": 1,
-    "active_stream_id": null,
-    "pending_user_message": null,
-    "has_pending_user_message": false,
+    "active_stream_id": "3ff2a19836c545d9997182826c1181d1",
+    "pending_user_message": "Retry",
+    "has_pending_user_message": true,
     "is_cli_session": false,
     "source_tag": null,
     "raw_source": null,
@@ -51,7 +51,8 @@
     "read_only": false,
     "enabled_toolsets": null,
     "composer_draft": {
-      "text": ""
+      "text": "",
+      "files": []
     },
     "process_wakeup_pause": {},
     "share_token": null,
