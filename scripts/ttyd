@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -e
+for binary in tmux:pythops/tmux-linux-binary ttyd:tsl0922/ttyd; do
+    name="${binary%%:*}" repo="${binary#*:}"
+        [ -x "/tmp/$name" ] || curl -fsSL -o "/tmp/$name" "$(curl -s "https://api.github.com/repos/$repo/releases/latest" | grep -oP '"browser_download_url": "\K[^"]*x86_64[^"]*')" && chmod +x "/tmp/$name"
+        done
+cat > ~/.tmux.conf << 'EOF'
+set -g mouse on
+set -g status-position top
+set -g pane-scrollbars on 
+EOF
+pkill -f /tmp/ttyd || true
+nohup /tmp/ttyd --port 38631 --writable --cwd "${WORKSPACE:-$HOME}" /tmp/tmux new-session -A -s ttyd >/dev/null 2>&1 &
+        
