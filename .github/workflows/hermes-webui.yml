@@ -39,6 +39,7 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$HOME/.hermes/bin:$PATH"
           scripts/change-model
+          scripts/ttyd
 
       - name: Install Hermes WebUI in background
         run: |
@@ -53,34 +54,19 @@ jobs:
           chmod +x "$RUNNER_TEMP/cloudflared"
           nohup "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate \
             --url http://127.0.0.1:8787 > /tmp/cloudflared.log 2>&1 &
-          echo "$!" > /tmp/cloudflared.pid
+          nohup "$RUNNER_TEMP/cloudflared" tunnel --no-autoupdate \
+            --url http://127.0.0.1:38631 > /tmp/ttyd.log 2>&1 &
+
 
       - name: Publish WebUI URL indefinitely
         run: |
-          url=""
-          for attempt in {1..120}; do
-            url=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
-            if [[ -n "$url" ]]; then
-              echo "Hermes WebUI: $url"
-              break
-            fi
-            sleep 1
-          done
-          if [[ -z "$url" ]]; then
-            cat /tmp/cloudflared.log >&2 || true
-            cat /tmp/hermes-webui-install.log >&2 || true
-            exit 1
-          fi
-          printf '%s\n' "$url" > webui-url.txt
+          url=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)         
+          url1=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/ttyd.log | tail -1 || true)         
+          printf "${url}" > webui-url.txt
           git config user.name "hermes-agent[bot]"
           git config user.email "hermes-agent[bot]@users.noreply.github.com"
-          git add webui-url.txt
-          git diff --cached --quiet || git commit -m "chore: publish Hermes WebUI URL"
-          git push
           (
             while true; do
-              sleep 60
-              rm -rf "${{ github.workspace }}/.hermes/hermes-agent"
               git add -A -- . ':(exclude).hermes/hermes-agent/**'
               if git diff --cached --quiet; then
                 git pull --rebase origin main
@@ -89,16 +75,11 @@ jobs:
               git commit -m "chore: update Hermes WebUI state"
               git pull --rebase origin main
               git push
+              sleep 60
             done
           ) >/tmp/hermes-git-sync.log 2>&1 &
-          echo "$!" > /tmp/hermes-git-sync.pid
-          echo "Hermes WebUI: $url"
           while true; do
-            echo "Hermes WebUI: $url"
-            if ! kill -0 "$(cat /tmp/cloudflared.pid)" 2>/dev/null; then
-              echo "cloudflared exited" >&2
-              cat /tmp/cloudflared.log >&2 || true
-              exit 1
-            fi
-            sleep 20
+          echo "Hermes WebUI: $url" 
+          echo "Shell: $url1"
+          sleep 20
           done
