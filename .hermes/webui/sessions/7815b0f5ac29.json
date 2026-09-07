@@ -61,7 +61,7 @@
   "read_only": false,
   "enabled_toolsets": null,
   "composer_draft": {
-    "text": "Generate 1 line script to install latest ",
+    "text": "hermes plugins install DietrichGebert/ponytail --enable",
     "files": []
   },
   "process_wakeup_pause": {},
