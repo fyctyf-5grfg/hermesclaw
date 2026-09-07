@@ -1,0 +1,2 @@
+{"event":"submitted","stream_id":"52e79b5fac644e28b2b094ce3940a359","role":"user","content":"Read workers","attachments":[],"workspace":"/home/runner/work/hermesclaw/hermesclaw","model":"@cf/zai-org/glm-4.7-flash","model_provider":"custom","created_at":1788768946.724864,"version":1,"session_id":"7815b0f5ac29","turn_id":"20260907T081546Z-04cdde92fdf6"}
+{"event":"worker_started","created_at":1788768946.7280512,"stream_id":"52e79b5fac644e28b2b094ce3940a359","turn_id":"20260907T081546Z-04cdde92fdf6","version":1,"session_id":"7815b0f5ac29"}
