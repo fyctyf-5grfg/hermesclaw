@@ -61,7 +61,7 @@
   "read_only": false,
   "enabled_toolsets": null,
   "composer_draft": {
-    "text": "",
+    "text": "Generate 1 line script to install latest ",
     "files": []
   },
   "process_wakeup_pause": {},
