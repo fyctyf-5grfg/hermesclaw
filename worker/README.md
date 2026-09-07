@@ -14,8 +14,8 @@ npx wrangler deploy
 
 `GITHUB_TOKEN` must be a fine-grained token with Actions `Read and write` access for this repository. The workflow writes each new quick-tunnel URL to `webui-url.txt`, so no URL secret needs manual updating.
 
-Stop all active WebUI runs with the same GitHub token:
+Stop all active WebUI runs by visiting:
 
-```bash
-curl -X POST -H "Authorization: Bearer YOUR_GITHUB_TOKEN" https://hermes-webui-redirect.kahibexi.workers.dev/stop
-```
+https://hermes-webui-redirect.kahibexi.workers.dev/stop
+
+The Worker uses its configured `GITHUB_TOKEN` internally. This endpoint is intentionally public: anyone who knows the URL can stop active WebUI runs.

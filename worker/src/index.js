@@ -99,12 +99,8 @@ async function stopWebuiRuns(env) {
 export default {
   async fetch(request, env) {
     if (new URL(request.url).pathname === "/stop") {
-      if (request.method !== "POST") {
-        return response("Method not allowed", 405, { Allow: "POST" });
-      }
-      const authorization = request.headers.get("Authorization");
-      if (!env.GITHUB_TOKEN || authorization !== `Bearer ${env.GITHUB_TOKEN}`) {
-        return response("Unauthorized", 401, { "WWW-Authenticate": "Bearer" });
+      if (request.method !== "GET" && request.method !== "POST") {
+        return response("Method not allowed", 405, { Allow: "GET, POST" });
       }
       if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) {
         return response("Worker is not configured", 503);
