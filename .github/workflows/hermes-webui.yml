@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.TOKEN }}
-          token: ${{ secrets.TOKEN }}
+          
 
       - name: Prepare repository-backed Hermes home
         run: |
