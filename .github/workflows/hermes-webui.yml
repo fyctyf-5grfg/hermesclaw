@@ -28,7 +28,11 @@ jobs:
           git config --global --add safe.directory "${{ github.workspace }}"
           rm -rf "$HOME/.hermes"
           ln -s "${{ github.workspace }}/.hermes" "$HOME/.hermes"
-          rm -rf "${{ github.workspace }}/.hermes/hermes-agent"
+
+      - name: Bootstrap nested repositories
+        run: |
+          export PATH="$PWD/scripts:$PATH"
+          bash scripts/bootstrap-nested-repos.sh
 
       - name: Install Hermes Agent
         run: |
