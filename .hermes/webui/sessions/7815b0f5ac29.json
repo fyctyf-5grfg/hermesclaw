@@ -61,7 +61,8 @@
   "read_only": false,
   "enabled_toolsets": null,
   "composer_draft": {
-    "text": ""
+    "text": "Retry",
+    "files": []
   },
   "process_wakeup_pause": {},
   "share_token": null,
