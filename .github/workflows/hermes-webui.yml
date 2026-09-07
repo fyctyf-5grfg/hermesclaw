@@ -64,11 +64,7 @@ jobs:
           git config user.email "hermes-agent[bot]@users.noreply.github.com"
           (
             while true; do
-              git add -A -- . ':(exclude).hermes/hermes-agent/**'
-              if git diff --cached --quiet; then
-                git pull --rebase origin main
-                continue
-              fi
+              git add .
               git commit -m "chore: update Hermes WebUI state"
               git pull --rebase origin main
               git push
