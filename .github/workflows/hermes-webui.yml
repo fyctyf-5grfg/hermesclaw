@@ -33,7 +33,7 @@ jobs:
       - name: Install Hermes Agent
         run: |
           curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- \
-            --skip-browser --skip-setup --non-interactive --skip-computer-use
+             --non-interactive
 
       - name: Configure Cloudflare model proxy
         run: |
