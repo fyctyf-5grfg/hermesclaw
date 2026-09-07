@@ -1,113 +1,50 @@
-# Hermes GitHub Bot
+# HermesClaw
 
-This repository runs [Hermes Agent](https://github.com/NousResearch/hermes-agent) as a GitHub Issues bot. Opening an issue or commenting on one sends the issue transcript to Hermes. Hermes works in the checked-out repository, and the workflow posts its response back to the issue.
+HermesClaw runs Hermes Agent in GitHub Actions for issue automation and a temporary WebUI session.
 
-Hermes' home is deliberately kept at `.hermes/` in this repository, so sessions, memory, skills, and configuration survive between workflow runs through git.
+## Worker
 
-## Features
+Open the Worker URL to reach Hermes WebUI:
 
+https://hermes-webui-redirect.kahibexi.workers.dev
 
-## Quickstart
+If the WebUI tunnel is offline, the Worker starts `hermes-webui.yml` and returns a retry response. The workflow writes the new tunnel URL to [`webui-url.txt`](webui-url.txt).
 
-### Setup
+Stop all active WebUI workflows:
 
-1. Enable GitHub Actions in this repository
-2. Add `OPENAI_API_KEY` under **Settings → Secrets and variables → Actions** (`cloudflare-local`)
-3. Add the `TOKEN` repository secret with Contents, Actions, Packages, and Workflows write access
-4. (Optional) Add `HERMES_MODEL` as a repo variable; defaults to `@cf/zai-org/glm-4.7-flash`
-5. (Optional) Add `HERMES_PROMPT_FLAG` if your Hermes version uses a different one-shot flag (default is `--oneshot`)
-6. (Optional) Add `HERMES_COMMAND` if you want to override the `hermes` executable (default: `hermes`)
-7. (Optional) Add `HERMES_TIMEOUT_SECONDS` if you need longer execution time (default: 1800s = 30m)
+https://hermes-webui-redirect.kahibexi.workers.dev/stop
 
-### Configuration
+The `/stop` URL is public. Anyone who knows it can stop active WebUI runs.
 
-| Variable/Secret | Required? | Default | Description |
-|-----------------|-----------|---------|-------------|
-| `OPENAI_API_KEY` | ✅ | — | API key for the model provider |
-| `GITHUB_TOKEN` | ✅ | Auto | GitHub token (provided automatically) |
-| `TOKEN` | ✅ | — | Repository token used by workflows for GitHub writes and workflow updates |
-| `HERMES_MODEL` | ❌ | `@cf/zai-org/glm-4.7-flash` | Model to use for Hermes |
-| `OPENAI_BASE_URL` | ❌ | `${{ github.repository }}/actions/runner/current/externals/node20/externals/threading/` | OpenAI-compatible base URL (typically `http://127.0.0.1:8788/v1`) |
-| `HERMES_COMMAND` | ❌ | `hermes` | Command to run Hermes |
-| `HERMES_PROMPT_FLAG` | ❌ | `--oneshot` | Flag to pass a prompt directly to Hermes |
-| `HERMES_HOME` | ❌ | `${{ github.workspace }}/.hermes` | Hermes home directory |
-| `HERMES_TIMEOUT_SECONDS` | ❌ | `1800` | Maximum seconds Hermes may run |
+## Setup
 
-### Local dependencies
+Add these repository secrets:
 
-This setup is Dockerless; everything runs on the runner:
+- `TOKEN`: GitHub token with Contents, Actions, Packages, and Workflows write access.
+- `OPENAI_API_KEY`: model provider credential.
 
-
-### Local Cloudflare model endpoint
-
-The `scripts/cf-proxy.py` script starts a local OpenAI-compatible proxy on port 8788:
+The Worker stores the same GitHub token as `GITHUB_TOKEN`. Deploy it with:
 
 ```bash
-# Run locally (requires curl & Python)
-python3 scripts/cf-proxy.py
-
-# Or modify scripts/change-model to use a different port or credentials
-CF_PROXY_PORT=8080 python3 scripts/cf-proxy.py
+cd worker
+npx wrangler secret put GITHUB_TOKEN
+npx wrangler deploy
 ```
 
-**Configuration options:**
+## Workflows
 
+- [`hermes-bot.yml`](.github/workflows/hermes-bot.yml) responds to authorized issue and issue-comment events.
+- [`hermes-webui.yml`](.github/workflows/hermes-webui.yml) installs Hermes, starts the WebUI and Cloudflare tunnel, publishes its URL, and syncs state every 60 seconds.
 
-### Local dry run
+The WebUI workflow can be started manually from GitHub Actions or automatically by the Worker when the published URL is unreachable.
 
-Create an event fixture and test without contacting GitHub:
+## Local Use
 
 ```bash
-GITHUB_EVENT_PATH=event.json HERMES_DRY_RUN=1 python3 hermes_github_bot.py
+rm -rf "$HOME/.hermes"
+ln -s "$PWD/.hermes" "$HOME/.hermes"
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- \
+  --skip-browser --skip-setup --non-interactive --skip-computer-use
+scripts/change-model
 ```
-
-This prints the exact prompt that Hermes would see, without running Hermes or sending a GitHub comment.
-
-## How Hermes processes GitHub issues
-
-When you open an issue or comment, Hermes receives:
-
-1. **Issue title** and **body**
-2. **All historical comments** (ordered chronologically)
-3. **Event name** (e.g., `issue_comment`, `issues`)
-4. **Repository context** (via `GITHUB_TOKEN`)
-
-Hermes uses its skills and memory to address requests, write code, review PRs, summarize docs, or perform other coding tasks. It works directly within the repository and may:
-
-
-All responses are posted back to the GitHub issue as comments.
-
-## Updating the workflow (if you maintain this repo)
-
-If you extend or fork this bot, remember a few invariants:
-
-
-## Troubleshooting
-
-### "Missing Authentication header" (HTTP 401)
-
-
-### "No repository is currently checked out"
-
-
-### Hermes installer is slow or hangs
-
-
-### Cloudflare proxy is not reachable
-
-
-### Hermes exits with status X
-
-
-### State stays stale between runs
-
-
-### Hermes produces empty response
-
-
-## Alternatives or extensions
-
-This is a minimal Hermes wrapper. For a more feature-rich setup:
-
-
-## References
+Runtime files, credentials, logs, cache, binaries, and the temporary agent checkout are ignored by Git. Never commit tokens or API keys.
