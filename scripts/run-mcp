@@ -45,4 +45,3 @@ for i in $(seq 1 10); do
 done
 
 cat /tmp/mcp_server.log
-"$SCRIPT_DIR/kv" 8001 8000
