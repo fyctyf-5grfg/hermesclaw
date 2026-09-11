@@ -9,14 +9,88 @@ cd "$WORKSPACE"
 PYTHON="/tmp/venv/bin/python"
 
 $PYTHON - <<'PY' > /tmp/mcp_server.log 2>&1 &
+import base64
 import os
 import subprocess as s
+import urllib.error
 import urllib.request
 import uuid
 
 from fastmcp import FastMCP
 
 mcp = FastMCP("Tools")
+
+SKILLS_REPO = os.environ.get("SKILLS_REPO", "fyctyf-5grfg/cloudflare-ai-skills")
+GH_TOKEN = os.environ.get("GH_PAT", "")
+
+def gh_req(path, method="GET", payload=None):
+    url = f"https://api.github.com{path}"
+    data = __import__("json").dumps(payload).encode() if payload is not None else None
+    req = urllib.request.Request(url, data=data, method=method)
+    req.add_header("Accept", "application/vnd.github+json")
+    req.add_header("User-Agent", "mcp-skills")
+    if GH_TOKEN:
+        req.add_header("Authorization", f"Bearer {GH_TOKEN}")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            body = r.read().decode("utf-8", "replace")
+            return r.status, (__import__("json").loads(body) if body.strip().startswith(("{", "[")) else body)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")
+        return e.code, (__import__("json").loads(body) if body.strip().startswith(("{", "[")) else body)
+
+def skill_desc(name):
+    st, d = gh_req(f"/repos/{SKILLS_REPO}/contents/skills/{name}/SKILL.md")
+    if st != 200 or not isinstance(d, dict):
+        return ""
+    txt = base64.b64decode(d.get("content", "")).decode("utf-8", "replace")
+    for line in txt.splitlines():
+        if line.lower().startswith("description:"):
+            return line.split(":", 1)[1].strip()
+    return ""
+
+@mcp.tool()
+def list_skills() -> str:
+    """List all skills available in the persistent skills repo (name + description)."""
+    st, d = gh_req(f"/repos/{SKILLS_REPO}/contents/skills")
+    if st != 200 or not isinstance(d, list):
+        return f"error: {d}"
+    out = []
+    for item in d:
+        if item.get("type") != "dir":
+            continue
+        name = item["name"]
+        out.append(f"- {name}: {skill_desc(name)}")
+    return "\n".join(out) or "(no skills yet — create one with save_skill)"
+
+@mcp.tool()
+def read_skill(name: str) -> str:
+    """Read the full markdown content of a skill by name."""
+    st, d = gh_req(f"/repos/{SKILLS_REPO}/contents/skills/{name}/SKILL.md")
+    if st != 200:
+        return f"error: {d}"
+    return base64.b64decode(d["content"]).decode("utf-8", "replace")
+
+@mcp.tool()
+def save_skill(name: str, content: str) -> str:
+    """Create or update a skill named `name` with markdown `content`. Use a short kebab-case name and start content with frontmatter: ---\\nname: <name>\\ndescription: <one line>\\n---"""
+    path = f"/repos/{SKILLS_REPO}/contents/skills/{name}/SKILL.md"
+    payload = {"message": f"save skill {name} (via cloudflare-ai)", "content": base64.b64encode(content.encode()).decode()}
+    st, d = gh_req(path)
+    if st == 200 and isinstance(d, dict):
+        payload["sha"] = d.get("sha")
+    st2, d2 = gh_req(path, "PUT", payload)
+    return "saved" if st2 in (200, 201) else f"error: {d2}"
+
+@mcp.tool()
+def delete_skill(name: str) -> str:
+    """Delete a skill by name."""
+    path = f"/repos/{SKILLS_REPO}/contents/skills/{name}/SKILL.md"
+    st, d = gh_req(path)
+    if st != 200:
+        return f"error: {d}"
+    st2, d2 = gh_req(path, "DELETE", {"message": f"delete skill {name} (via cloudflare-ai)", "sha": d["sha"]})
+    return "deleted" if st2 == 200 else f"error: {d2}"
 
 @mcp.tool()
 def read_file(path: str) -> str:

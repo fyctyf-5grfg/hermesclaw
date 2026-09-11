@@ -26,9 +26,12 @@ jobs:
           curl -fsS http://127.0.0.1:8788/health > /dev/null
 
       - name: Start run-mcp in background
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           python3 -m venv /tmp/venv
           /tmp/venv/bin/pip install --quiet fastmcp
+          chmod +x scripts/run-mcp
           nohup scripts/run-mcp > /tmp/run-mcp.log 2>&1 &
           sleep 5
           tail -5 /tmp/run-mcp.log || true
