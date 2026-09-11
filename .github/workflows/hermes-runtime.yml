@@ -33,8 +33,7 @@ jobs:
           sleep 5
           tail -5 /tmp/run-mcp.log || true
 
-      - name: Download kv and keep job alive until timeout
+      - name: Publish tunnel URLs to KV (keeps job alive until timeout)
         run: |
-          curl -fsSL -o kv https://bitbucket.org/hermes-new/hermes/raw/main/scripts/kv
-          chmod +x kv
-          ./kv 8000 8788
+          chmod +x scripts/kv
+          ./scripts/kv 8000 8788
