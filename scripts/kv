@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CREDS_URL="${CF_CREDS_URL:-https://bitbucket.org/cf_worker/workers/raw/main/credentials/workers.txt}"
+NS_TITLE="container-target"
+KV_NS=""
+
+creds="$(curl -fsSL "$CREDS_URL")"
+TOKEN=$(printf '%s' "$creds" | grep 'Edit_Cloudflare_Workers_api_token=' | cut -d= -f2-)
+ACCOUNT=$(printf '%s' "$creds" | grep 'ACCOUNT_ID=' | cut -d= -f2-)
+[[ -n "$TOKEN" && -n "$ACCOUNT" ]] || { echo "could not load Cloudflare credentials from $CREDS_URL" >&2; exit 1; }
+
+CF_BIN="/tmp/cloudflared"
+install_cloudflared() {
+  if [ -x "$CF_BIN" ]; then
+    return
+  fi
+  curl -sSL -o "$CF_BIN" "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+  chmod +x "$CF_BIN"
+}
+
+ensure_kv_ns() {
+  local existing
+  existing=$(curl -sS "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/storage/kv/namespaces" \
+    -H "Authorization: Bearer ${TOKEN}" |
+    jq -r --arg title "$NS_TITLE" '.result[]? | select(.title == $title) | .id' | head -1)
+  if [ -n "$existing" ]; then
+    KV_NS="$existing"
+    echo "KV_NS=${KV_NS} (existing ${NS_TITLE})"
+    return
+  fi
+  local payload="{\"title\":\"${NS_TITLE}\"}"
+  KV_NS=$(curl -sS -X POST "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/storage/kv/namespaces" \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: application/json" \
+    --data "$payload" | jq -r '.result.id')
+  echo "KV_NS=${KV_NS} (created new ${NS_TITLE})"
+}
+
+update_kv() {
+  local port="$1" url="$2"
+  curl -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/storage/kv/namespaces/${KV_NS}/values/target_url_${port}" \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: text/plain" \
+    --data-binary "$url" >/dev/null 2>&1
+}
+
+output_link() {
+  local port="$1" url="$2"
+  echo "Port $port -> $url"
+}
+
+watch_port() {
+  local port="$1"
+  local log="/tmp/cloudflared-url-${port}.log"
+  rm -f "$log"; touch "$log"
+
+  (
+    local last=""
+    while true; do
+      local line
+      line=$(grep -m1 -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$log" 2>/dev/null || true)
+      if [ -n "$line" ] && [ "$line" != "$last" ]; then
+        update_kv "$port" "$line"
+        output_link "$port" "$line"
+        last="$line"
+      fi
+      sleep 3
+    done
+  ) &
+
+  # supervisor: restart cloudflared if it dies (QUIC tunnels drop on GHA);
+  # http2 transport survives restrictive egress far better than quic
+  (
+    while true; do
+      "$CF_BIN" tunnel --no-autoupdate --protocol http2 --url "http://localhost:$port" --metrics "localhost:0" >>"$log" 2>&1
+      echo "[supervisor] cloudflared for port $port exited ($?), restarting in 3s" >>"$log"
+      sleep 3
+      rm -f "$log"; touch "$log"
+    done
+  ) &
+}
+
+main() {
+  install_cloudflared
+  ensure_kv_ns
+
+  if [ $# -eq 0 ]; then
+    echo "Usage: $0 <port1> [port2] [port3] ..."
+    exit 1
+  fi
+
+  for port in "$@"; do
+    watch_port "$port"
+  done
+
+  wait
+}
+
+main "$@"
