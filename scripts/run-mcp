@@ -9,23 +9,50 @@ cd "$WORKSPACE"
 PYTHON="/tmp/venv/bin/python"
 
 $PYTHON - <<'PY' > /tmp/mcp_server.log 2>&1 &
+import os
 import subprocess as s
+import urllib.request
+import uuid
+
 from fastmcp import FastMCP
 
 mcp = FastMCP("Tools")
+
 @mcp.tool()
 def read_file(path: str) -> str:
-    return open(path).read() if __import__('os').path.exists(path) else "Not found"
+    return open(path).read() if os.path.exists(path) else "Not found"
 
 @mcp.tool()
 def list_files(path: str = ".") -> str:
-    return "\n".join(__import__('os').listdir(path))
-
+    return "\n".join(os.listdir(path))
 
 @mcp.tool()
 def execute(command: str) -> str:
     r = s.run(command, shell=True, capture_output=True, text=True)
     return f"Exit {r.returncode}\n{r.stdout}\n{r.stderr}"
+
+@mcp.tool()
+def write_file(path: str, content: str) -> str:
+    d = os.path.dirname(path)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    with open(path, "w") as f:
+        f.write(content)
+    return f"wrote {len(content)} bytes to {path}"
+
+@mcp.tool()
+def web_fetch(url: str) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": "mcp-tools/1.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = r.read(500_000)
+    charset = r.headers.get_content_charset() or "utf-8"
+    return data.decode(charset, "replace")
+
+@mcp.tool()
+def run_background(command: str) -> str:
+    log = f"/tmp/bg-{uuid.uuid4().hex[:8]}.log"
+    p = s.Popen(f"{{ {command}; }} >{log} 2>&1", shell=True)
+    return f"started pid {p.pid}, log: {log}"
 
 mcp.run(transport="streamable-http", host="0.0.0.0", port=8000, path="/mcp")
 PY
