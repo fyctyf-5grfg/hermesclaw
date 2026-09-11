@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+WORKSPACE="${WORKSPACE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+source "$SCRIPT_DIR/path"
+pkill -f "fastmcp" 2>/dev/null
+cd "$WORKSPACE"
+
+/tmp/venv/bin/python -c "import fastmcp" 2>/dev/null || uv pip install --python /tmp/venv/bin/python fastmcp
+PYTHON="/tmp/venv/bin/python"
+
+$PYTHON - <<'PY' > /tmp/mcp_server.log 2>&1 &
+import subprocess as s
+from fastmcp import FastMCP
+
+mcp = FastMCP("Tools")
+@mcp.tool()
+def read_file(path: str) -> str:
+    return open(path).read() if __import__('os').path.exists(path) else "Not found"
+
+@mcp.tool()
+def list_files(path: str = ".") -> str:
+    return "\n".join(__import__('os').listdir(path))
+
+
+@mcp.tool()
+def execute(command: str) -> str:
+    r = s.run(command, shell=True, capture_output=True, text=True)
+    return f"Exit {r.returncode}\n{r.stdout}\n{r.stderr}"
+
+mcp.run(transport="streamable-http", host="0.0.0.0", port=8000, path="/mcp")
+PY
+MCP_PID=$!
+
+for i in $(seq 1 10); do
+    if curl -s -o /dev/null http://localhost:8000/mcp 2>/dev/null; then
+        echo "MCP server started (pid $MCP_PID)"
+        break
+    fi
+    if ! kill -0 $MCP_PID 2>/dev/null; then
+        echo "MCP server crashed:"
+        cat /tmp/mcp_server.log
+        exit 1
+    fi
+    sleep 1
+done
+
+cat /tmp/mcp_server.log
+"$SCRIPT_DIR/kv" 8001 8000
