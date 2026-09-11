@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKSPACE="${WORKSPACE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-source "$SCRIPT_DIR/path"
 pkill -f "fastmcp" 2>/dev/null
 cd "$WORKSPACE"
 
-/tmp/venv/bin/python -c "import fastmcp" 2>/dev/null || uv pip install --python /tmp/venv/bin/python fastmcp
+[ -x /tmp/venv/bin/python ] || python3 -m venv /tmp/venv
+/tmp/venv/bin/python -c "import fastmcp" 2>/dev/null || /tmp/venv/bin/pip install --quiet fastmcp
 PYTHON="/tmp/venv/bin/python"
 
 $PYTHON - <<'PY' > /tmp/mcp_server.log 2>&1 &
